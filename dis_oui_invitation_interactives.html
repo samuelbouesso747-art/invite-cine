@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Dis Oui — On se fait un ciné ? 🍿</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Canvas Confetti Library -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  
+  <!-- Google Fonts: Cormorant Garamond & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Custom Styles & Theme Configuration -->
+  <style>
+    :root {
+      --bg-cream: #f6f1e8;
+      --card-cream: #fcfaf7;
+      --border-warm: #e5dbc2;
+      --border-subtle: #ebd1bd;
+      --burgundy: #6b1124;
+      --burgundy-hover: #500b1a;
+      --gold-tan: #b88d4c;
+      --text-dark: #2c2725;
+      --text-muted: #8c827a;
+    }
+
+    body {
+      background-color: var(--bg-cream);
+      color: var(--text-dark);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-image: 
+        radial-gradient(at 10% 10%, rgba(197, 160, 89, 0.08) 0px, transparent 50%),
+        radial-gradient(at 90% 90%, rgba(107, 17, 36, 0.06) 0px, transparent 50%);
+      background-attachment: fixed;
+    }
+
+    .font-serif-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+    }
+
+    /* DisOui style card double border */
+    .disoui-card {
+      background-color: var(--card-cream);
+      border: 1px solid var(--border-warm);
+      position: relative;
+      box-shadow: 0 15px 35px -10px rgba(107, 17, 36, 0.05), 0 5px 15px -5px rgba(0, 0, 0, 0.02);
+    }
+
+    .disoui-card::before {
+      content: '';
+      position: absolute;
+      inset: 4px;
+      border: 1px solid rgba(229, 219, 202, 0.6);
+      pointer-events: none;
+      border-radius: inherit;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-cream);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #d8cebe;
+      border-radius: 3px;
+    }
+
+    /* Smooth Escaping Button Motion */
+    #fleeBtn {
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      user-select: none;
+      touch-action: manipulation;
+    }
+
+    /* Pulse animation for selected times */
+    .time-slot-selected {
+      background-color: var(--burgundy) !important;
+      color: #ffffff !important;
+      border-color: var(--burgundy) !important;
+      box-shadow: 0 4px 12px rgba(107, 17, 36, 0.25);
+    }
+
+    /* Confetti canvas fix */
+    #confettiCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between antialiased selection:bg-amber-100 selection:text-amber-900">
+
+  <canvas id="confettiCanvas"></canvas>
+
+  <!-- Top Navigation Header -->
+  <header class="w-full max-w-xl mx-auto px-6 pt-6 pb-2 flex items-center justify-between">
+    <!-- Brand Logo -->
+    <a href="#" id="brandLogo" class="text-2xl font-serif-title font-bold text-[#6b1124] tracking-tight hover:opacity-80 transition">
+      Dis Oui
+    </a>
+
+    <!-- Middle/Right Header Tools -->
+    <div class="flex items-center space-x-6 text-xs uppercase tracking-widest text-[#8c827a] font-medium">
+      <div class="space-x-1 hidden sm:block">
+        <span class="text-[#6b1124] font-bold border-b border-[#6b1124] pb-0.5">FR</span>
+        <span>•</span>
+        <span class="hover:text-gray-700 cursor-pointer">EN</span>
+        <span>•</span>
+        <span class="hover:text-gray-700 cursor-pointer">ES</span>
+        <span>•</span>
+        <span class="hover:text-gray-700 cursor-pointer">DE</span>
+      </div>
+
+      <!-- Step Indicator Dashes (Only visible in Creator Mode) -->
+      <div id="stepDashes" class="flex items-center space-x-1.5">
+        <div id="dash1" class="h-1 w-6 rounded-full bg-[#6b1124] transition-all duration-300"></div>
+        <div id="dash2" class="h-1 w-6 rounded-full bg-[#e2d9cc] transition-all duration-300"></div>
+        <div id="dash3" class="h-1 w-6 rounded-full bg-[#e2d9cc] transition-all duration-300"></div>
+        <div id="dash4" class="h-1 w-6 rounded-full bg-[#e2d9cc] transition-all duration-300"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main View Area -->
+  <main class="w-full max-w-xl mx-auto px-4 py-4 flex-grow flex flex-col justify-center">
+
+    <!-- ==================== MODE CRÉATEUR ==================== -->
+    <div id="creatorMode" class="w-full transition-all duration-300">
+      
+      <!-- STEP 1: Vous êtes qui ? -->
+      <div id="step1View" class="disoui-card rounded-2xl p-6 sm:p-8">
+        <div class="text-[11px] font-bold uppercase tracking-widest text-[#8c827a] mb-2">
+          Étape 1 sur 4
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-serif-title italic font-normal text-[#6b1124] mb-6">
+          Vous êtes qui ?
+        </h1>
+
+        <div class="space-y-5">
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-[#6e665f] mb-2">
+              Son prénom (ou son surnom)
+            </label>
+            <input type="text" id="inputTargetName" value="Merveille" placeholder="Ex: Merveille, Chérie..."
+              class="w-full bg-[#f8f5ee] border border-[#e2d9cc] rounded-lg px-4 py-3 text-gray-800 focus:outline-none focus:border-[#6b1124] focus:ring-1 focus:ring-[#6b1124] transition text-base" />
+            <p class="text-xs italic text-[#8c827a] mt-1.5">
+              Le surnom marche mieux. C'est le détail qui fait « c'est vraiment pour moi ».
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-[#6e665f] mb-2">
+              Ton prénom
+            </label>
+            <input type="text" id="inputSenderName" value="Le garçon de DGC" placeholder="Ex: Alex, Le garçon de DGC..."
+              class="w-full bg-[#f8f5ee] border border-[#e2d9cc] rounded-lg px-4 py-3 text-gray-800 focus:outline-none focus:border-[#6b1124] focus:ring-1 focus:ring-[#6b1124] transition text-base" />
+          </div>
+
+          <button onclick="goToStep(2)"
+            class="w-full mt-4 bg-[#6b1124] hover:bg-[#500b1a] text-white font-semibold py-4 px-6 rounded-lg shadow-md uppercase tracking-widest text-xs transition transform active:scale-[0.99]">
+            Continuer
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Vous allez faire quoi ? -->
+      <div id="step2View" class="disoui-card rounded-2xl p-6 sm:p-8 hidden">
+        <div class="text-[11px] font-bold uppercase tracking-widest text-[#8c827a] mb-2">
+          Étape 2 sur 4
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-serif-title italic font-normal text-[#6b1124] mb-6">
+          Vous allez faire quoi ?
+        </h1>
+
+        <div class="space-y-5">
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-[#6e665f] mb-2">
+              L'activité
+            </label>
+            <input type="text" id="inputActivity" value="Ciné" placeholder="Ex: Ciné, Resto, Verre..."
+              class="w-full bg-[#f8f5ee] border border-[#e2d9cc] rounded-lg px-4 py-3 text-gray-800 focus:outline-none focus:border-[#6b1124] focus:ring-1 focus:ring-[#6b1124] transition text-base" />
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-[#6e665f] mb-2">
+              Le lieu
+            </label>
+            <input type="text" id="inputLocation" value="Culture Park" placeholder="Ex: Culture Park, UGC Les Halles..."
+              class="w-full bg-[#f8f5ee] border border-[#e2d9cc] rounded-lg px-4 py-3 text-gray-800 focus:outline-none focus:border-[#6b1124] focus:ring-1 focus:ring-[#6b1124] transition text-base" />
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-[#6e665f] mb-2">
+              Un détail (facultatif)
+            </label>
+            <input type="text" id="inputDetail" value="Faire connaissance & pop-corn" placeholder="Ex: Faire connaissance, Pop-corn salé..."
+              class="w-full bg-[#f8f5ee] border border-[#e2d9cc] rounded-lg px-4 py-3 text-gray-800 focus:outline-none focus:border-[#6b1124] focus:ring-1 focus:ring-[#6b1124] transition text-base" />
+          </div>
+
+          <div class="space-y-2 pt-2">
+            <button onclick="goToStep(3)"
+              class="w-full bg-[#6b1124] hover:bg-[#500b1a] text-white font-semibold py-4 px-6 rounded-lg shadow-md uppercase tracking-widest text-xs transition transform active:scale-[0.99]">
+              Continuer
+            </button>
+            <button onclick="goToStep(1)"
+              class="w-full bg-transparent text-[#6b1124] border border-[#6b1124]/30 hover:bg-[#6b1124]/5 font-semibold py-3 px-6 rounded-lg uppercase tracking-widest text-xs transition">
+              Retour
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3: Quand ? -->
+      <div id="step3View" class="disoui-card rounded-2xl p-6 sm:p-8 hidden">
+        <div class="text-[11px] font-bold uppercase tracking-widest text-[#8c827a] mb-2">
+          Étape 3 sur 4
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-serif-title italic font-normal text-[#6b1124] mb-6">
+          Quand ?
+        </h1>
+
+        <div class="space-y-5">
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-[#6e665f] mb-2">
+              Le jour
+            </label>
+            <input type="text" id="inputDate" value="18 oct. 2026" placeholder="Ex: 18 oct. 2026, Samedi soir..."
+              class="w-full bg-[#f8f5ee] border border-[#e2d9cc] rounded-lg px-4 py-3 text-gray-800 focus:outline-none focus:border-[#6b1124] focus:ring-1 focus:ring-[#6b1124] transition text-base" />
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-[#6e665f] mb-3">
+              Les horaires que tu proposes
+            </label>
+
+            <!-- Grid of Time Slot Pills -->
+            <div id="timeSlotsGrid" class="grid grid-cols-3 gap-2 sm:gap-2.5 max-h-56 overflow-y-auto p-1">
+              <!-- JS Populated Time Slot Buttons -->
+            </div>
+
+            <p class="text-xs italic text-[#8c827a] mt-3">
+              Touche 2 à 5 horaires. C'est elle qui choisira — c'est ce qui transforme l'invitation en vrai rendez-vous.
+            </p>
+          </div>
+
+          <div class="space-y-2 pt-2">
+            <button onclick="goToStep(4)"
+              class="w-full bg-[#6b1124] hover:bg-[#500b1a] text-white font-semibold py-4 px-6 rounded-lg shadow-md uppercase tracking-widest text-xs transition transform active:scale-[0.99]">
+              Continuer
+            </button>
+            <button onclick="goToStep(2)"
+              class="w-full bg-transparent text-[#6b1124] border border-[#6b1124]/30 hover:bg-[#6b1124]/5 font-semibold py-3 px-6 rounded-lg uppercase tracking-widest text-xs transition">
+              Retour
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 4: Invitation Prête -->
+      <div id="step4View" class="disoui-card rounded-2xl p-6 sm:p-8 hidden">
+        <div class="text-[11px] font-bold uppercase tracking-widest text-[#8c827a] mb-2">
+          Étape 4 sur 4
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-serif-title italic font-normal text-[#6b1124] mb-3">
+          Ton invitation est prête ! 🎉
+        </h1>
+        <p class="text-xs text-[#6e665f] mb-6 leading-relaxed">
+          Copie le lien ci-dessous et envoie-le lui par message. Quand elle ouvrira la page, le bouton "Non" s'enfuira !
+        </p>
+
+        <div class="space-y-4">
+          <div class="relative">
+            <input type="text" id="shareableUrlInput" readonly
+              class="w-full bg-[#f8f5ee] border border-[#e2d9cc] rounded-lg pl-3 pr-24 py-3 text-xs text-gray-700 font-mono focus:outline-none" />
+            <button onclick="copyGeneratedLink()" id="copyBtn"
+              class="absolute right-1 top-1 bottom-1 bg-[#6b1124] text-white text-[11px] uppercase tracking-wider font-semibold px-4 rounded-md hover:bg-[#500b1a] transition">
+              Copier
+            </button>
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-2 pt-2">
+            <button onclick="switchToReceiverView()"
+              class="flex-1 bg-[#b88d4c] hover:bg-[#9e763a] text-white font-semibold py-3.5 px-4 rounded-lg shadow-sm uppercase tracking-wider text-xs transition text-center">
+              Tester mon invitation 👁️
+            </button>
+            <button onclick="shareViaWhatsApp()"
+              class="flex-1 bg-[#25D366] hover:bg-[#1ebd59] text-white font-semibold py-3.5 px-4 rounded-lg shadow-sm uppercase tracking-wider text-xs transition text-center">
+              Partager WhatsApp 💬
+            </button>
+          </div>
+
+          <button onclick="goToStep(3)"
+            class="w-full bg-transparent text-[#6b1124] border border-[#6b1124]/30 hover:bg-[#6b1124]/5 font-semibold py-2.5 px-4 rounded-lg uppercase tracking-widest text-xs transition mt-2">
+            Modifier les infos
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== MODE DESTINATAIRE (RECEIVER VIEW) ==================== -->
+    <div id="receiverMode" class="w-full hidden">
+      
+      <!-- Top Escape Game Teaser Badge -->
+      <div class="flex justify-center -mb-3 z-10 relative">
+        <span class="bg-[#b88d4c] text-white text-[10px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-sm shadow-sm">
+          Essaie de dire non
+        </span>
+      </div>
+
+      <!-- Main Interactive DisOui Invitation Box -->
+      <div id="invitationCard" class="disoui-card rounded-2xl p-6 sm:p-10 text-center relative overflow-hidden min-h-[400px] flex flex-col justify-between">
+        
+        <!-- Header Info -->
+        <div>
+          <div id="displayTargetHeader" class="text-[11px] uppercase tracking-widest text-[#8c827a] font-medium mb-3">
+            POUR TOI, MERVEILLE
+          </div>
+
+          <h2 id="displayQuestionTitle" class="text-3xl sm:text-4xl font-serif-title text-[#6b1124] font-normal leading-tight mb-2">
+            Ça te dit un ciné avec moi ?
+          </h2>
+
+          <p class="text-xs italic text-[#8c827a] mb-6">
+            (dire non ne sert à rien, mais tu peux essayer)
+          </p>
+
+          <!-- Invitation Details Pill -->
+          <div class="bg-[#f8f5ee] border border-[#e2d9cc]/80 rounded-xl p-4 my-4 max-w-sm mx-auto text-left space-y-2 text-xs text-[#524a44]">
+            <div class="flex items-center space-x-2">
+              <span class="text-base">📍</span>
+              <span><strong>Lieu:</strong> <span id="displayLocation">Culture Park</span></span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span class="text-base">📅</span>
+              <span><strong>Date:</strong> <span id="displayDate">18 oct. 2026</span></span>
+            </div>
+            <div id="detailRow" class="flex items-center space-x-2">
+              <span class="text-base">✨</span>
+              <span><strong>Note:</strong> <span id="displayDetail">Faire connaissance & pop-corn</span></span>
+            </div>
+            
+            <!-- Time Slots selection for Receiver -->
+            <div class="pt-2 border-t border-[#e2d9cc]/60">
+              <span class="block text-[10px] uppercase font-bold text-[#8c827a] mb-1.5">
+                Choisis un horaire qui te convient :
+              </span>
+              <div id="receiverTimesGrid" class="flex flex-wrap gap-1.5">
+                <!-- Selectable time chips -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Buttons Container (Oui / Non fleeing button) -->
+        <div class="mt-6 relative min-h-[120px] flex flex-col items-center justify-center">
+          
+          <div id="buttonsWrapper" class="flex items-center justify-center gap-4 w-full relative min-h-[60px]">
+            <!-- OUI Button -->
+            <button id="yesBtn" onclick="acceptInvitation()"
+              class="bg-[#6b1124] hover:bg-[#500b1a] text-white font-semibold px-8 py-3.5 rounded-md shadow-md uppercase tracking-wider text-sm transition transform hover:scale-105 active:scale-95">
+              Oui
+            </button>
+
+            <!-- FLEEING NON Button -->
+            <button id="fleeBtn"
+              class="bg-[#fcfaf7] border border-[#d8cebe] text-[#6b1124] font-medium px-8 py-3 rounded-md text-sm shadow-sm hover:border-[#6b1124] transition-all duration-200">
+              Non
+            </button>
+          </div>
+
+          <!-- Teasing dynamic footer note -->
+          <div id="dodgeNote" class="text-xs italic text-[#a3978c] mt-4 h-4 transition-all duration-300">
+            Tu es sûr-e...
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Back to Creator Link -->
+      <div class="text-center mt-6">
+        <button onclick="switchToCreatorView()" class="text-xs text-[#8c827a] hover:text-[#6b1124] underline transition">
+          ✏️ Créer ou modifier cette invitation
+        </button>
+      </div>
+
+    </div>
+
+    <!-- ==================== MODE SUCCÈS (CELEBRATION VIEW) ==================== -->
+    <div id="successMode" class="disoui-card rounded-2xl p-8 sm:p-12 text-center hidden">
+      <div class="text-6xl mb-4 animate-bounce">🥳</div>
+      <h2 class="text-3xl sm:text-4xl font-serif-title italic text-[#6b1124] font-normal mb-2">
+        Rendez-vous pris !
+      </h2>
+      <p class="text-sm text-[#6e665f] mb-6">
+        C'est officiel ! Prépare tes meilleures réactions et ton plus beau sourire.
+      </p>
+
+      <!-- Confirmation Card Summary -->
+      <div class="bg-[#f8f5ee] border border-[#e2d9cc] rounded-xl p-5 mb-8 text-left space-y-2 text-xs text-[#423b36]">
+        <div><strong>De :</strong> <span id="confirmSender">Le garçon de DGC</span></div>
+        <div><strong>Pour :</strong> <span id="confirmTarget">Merveille</span></div>
+        <div><strong>Rendez-vous :</strong> <span id="confirmActivity">Ciné</span> à <span id="confirmLocation">Culture Park</span></div>
+        <div><strong>Date :</strong> <span id="confirmDate">18 oct. 2026</span></div>
+        <div><strong>Horaire choisi :</strong> <span id="confirmTime" class="font-bold text-[#6b1124]">14:00</span></div>
+      </div>
+
+      <div class="space-y-3">
+        <button onclick="confirmOnWhatsApp()"
+          class="w-full bg-[#25D366] hover:bg-[#1ebd59] text-white font-semibold py-4 px-6 rounded-lg shadow-md uppercase tracking-wider text-xs transition transform hover:scale-[1.02]">
+          Envoyer la réponse sur WhatsApp 💬
+        </button>
+
+        <button onclick="switchToCreatorView()"
+          class="w-full bg-transparent text-[#6b1124] border border-[#6b1124]/30 hover:bg-[#6b1124]/5 font-semibold py-3 px-6 rounded-lg uppercase tracking-wider text-xs transition">
+          Créer ma propre invitation 💖
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="w-full max-w-xl mx-auto px-6 py-4 text-center text-[11px] text-[#a09489]">
+    <p>Inspiré par Dis Oui — Fabriqué avec ❤️ pour les invitations inoubliables.</p>
+  </footer>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-[#2c2725] text-white text-xs px-5 py-3 rounded-full shadow-2xl opacity-0 pointer-events-none transition-all duration-300 z-50 flex items-center space-x-2">
+    <span id="toastMsg">Lien copié dans le presse-papier !</span>
+  </div>
+
+  <script>
+    /* ==================== STATE MANAGEMENT ==================== */
+    const DEFAULT_TIMES = ["11:00", "12:00", "13:00", "14:00", "16:00", "17:00", "18:00", "18:30", "19:00", "19:30", "20:00", "20:30", "21:00", "21:30", "22:00", "22:45"];
+    
+    let state = {
+      targetName: "Merveille",
+      senderName: "Le garçon de DGC",
+      activity: "Ciné",
+      location: "Culture Park",
+      detail: "Faire connaissance & pop-corn",
+      date: "18 oct. 2026",
+      availableTimes: ["14:00", "18:00", "20:00"],
+      selectedTime: "14:00",
+      currentStep: 1
+    };
+
+    const DODGE_PHRASES = [
+      "Tu es sûre ?",
+      "Mauvaise touche ! 😉",
+      "Oups, ça glisse !",
+      "Sérieusement ? 🥺",
+      "Essaie encore ! 😜",
+      "Opération annulée 😇",
+      "Il y aura du pop-corn ! 🍿",
+      "Impossible !",
+      "Pas de chance !",
+      "Dis Oui plutôt 💖"
+    ];
+
+    const DODGE_NOTES = [
+      "Tu es sûr-e...",
+      "Ah, le bouton est rapide !",
+      "Impossible de dire non 😇",
+      "Allez, clique sur Oui !",
+      "Tu n'y arriveras pas 😜",
+      "C'est écrit Oui d'avance !"
+    ];
+
+    let dodgeIndex = 0;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initFromUrlParams();
+      renderTimeSlotsGrid();
+      setupFleeingButton();
+      
+      // Auto-focus inputs on change
+      document.getElementById('inputTargetName').addEventListener('input', (e) => state.targetName = e.target.value || "Merveille");
+      document.getElementById('inputSenderName').addEventListener('input', (e) => state.senderName = e.target.value || "Le garçon de DGC");
+      document.getElementById('inputActivity').addEventListener('input', (e) => state.activity = e.target.value || "Ciné");
+      document.getElementById('inputLocation').addEventListener('input', (e) => state.location = e.target.value || "Culture Park");
+      document.getElementById('inputDetail').addEventListener('input', (e) => state.detail = e.target.value);
+      document.getElementById('inputDate').addEventListener('input', (e) => state.date = e.target.value || "18 oct. 2026");
+    });
+
+    function goToStep(stepNumber) {
+      state.currentStep = stepNumber;
+
+      // Hide all steps
+      document.getElementById('step1View').classList.add('hidden');
+      document.getElementById('step2View').classList.add('hidden');
+      document.getElementById('step3View').classList.add('hidden');
+      document.getElementById('step4View').classList.add('hidden');
+
+      // Show requested step
+      document.getElementById(`step${stepNumber}View`).classList.remove('hidden');
+
+      // Update progress dashes
+      for (let i = 1; i <= 4; i++) {
+        const dash = document.getElementById(`dash${i}`);
+        if (i <= stepNumber) {
+          dash.classList.remove('bg-[#e2d9cc]');
+          dash.classList.add('bg-[#6b1124]');
+        } else {
+          dash.classList.remove('bg-[#6b1124]');
+          dash.classList.add('bg-[#e2d9cc]');
+        }
+      }
+
+      if (stepNumber === 4) {
+        generateShareableLink();
+      }
+    }
+
+    function renderTimeSlotsGrid() {
+      const grid = document.getElementById('timeSlotsGrid');
+      grid.innerHTML = '';
+
+      DEFAULT_TIMES.forEach(time => {
+        const isSelected = state.availableTimes.includes(time);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `py-2 px-3 border rounded-lg text-xs font-medium transition ${
+          isSelected ? 'time-slot-selected' : 'bg-[#f8f5ee] border-[#e2d9cc] text-gray-700 hover:border-[#6b1124]'
+        }`;
+        btn.textContent = time;
+        btn.onclick = () => toggleTimeSlot(time, btn);
+        grid.appendChild(btn);
+      });
+    }
+
+    function toggleTimeSlot(time, btnElement) {
+      if (state.availableTimes.includes(time)) {
+        if (state.availableTimes.length > 1) {
+          state.availableTimes = state.availableTimes.filter(t => t !== time);
+          btnElement.classList.remove('time-slot-selected');
+          btnElement.classList.add('bg-[#f8f5ee]', 'border-[#e2d9cc]', 'text-gray-700');
+        } else {
+          showToast("Garde au moins 1 horaire proposé !");
+        }
+      } else {
+        state.availableTimes.push(time);
+        btnElement.classList.add('time-slot-selected');
+        btnElement.classList.remove('bg-[#f8f5ee]', 'border-[#e2d9cc]', 'text-gray-700');
+      }
+    }
+
+    function generateShareableLink() {
+      const baseUrl = window.location.origin + window.location.pathname;
+      const params = new URLSearchParams({
+        to: state.targetName,
+        from: state.senderName,
+        act: state.activity,
+        loc: state.location,
+        det: state.detail,
+        date: state.date,
+        times: state.availableTimes.join(',')
+      });
+
+      const fullUrl = `${baseUrl}?${params.toString()}`;
+      document.getElementById('shareableUrlInput').value = fullUrl;
+    }
+
+    function initFromUrlParams() {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('to') || urlParams.has('act')) {
+        state.targetName = urlParams.get('to') || "Merveille";
+        state.senderName = urlParams.get('from') || "Le garçon de DGC";
+        state.activity = urlParams.get('act') || "Ciné";
+        state.location = urlParams.get('loc') || "Culture Park";
+        state.detail = urlParams.get('det') || "";
+        state.date = urlParams.get('date') || "18 oct. 2026";
+        
+        const timesParam = urlParams.get('times');
+        if (timesParam) {
+          state.availableTimes = timesParam.split(',');
+        }
+
+        // Auto switch to receiver mode
+        switchToReceiverView();
+      }
+    }
+
+    function switchToReceiverView() {
+      document.getElementById('creatorMode').classList.add('hidden');
+      document.getElementById('successMode').classList.add('hidden');
+      document.getElementById('receiverMode').classList.remove('hidden');
+      document.getElementById('stepDashes').classList.add('hidden');
+
+      // Populate Display Cards
+      document.getElementById('displayTargetHeader').textContent = `POUR TOI, ${state.targetName.toUpperCase()}`;
+      document.getElementById('displayQuestionTitle').textContent = `Ça te dit un ${state.activity.toLowerCase()} avec moi ?`;
+      document.getElementById('displayLocation').textContent = state.location;
+      document.getElementById('displayDate').textContent = state.date;
+
+      const detailRow = document.getElementById('detailRow');
+      if (state.detail) {
+        document.getElementById('displayDetail').textContent = state.detail;
+        detailRow.classList.remove('hidden');
+      } else {
+        detailRow.classList.add('hidden');
+      }
+
+      // Render Receiver Time Chips
+      const timesContainer = document.getElementById('receiverTimesGrid');
+      timesContainer.innerHTML = '';
+      
+      state.selectedTime = state.availableTimes[0] || "14:00";
+
+      state.availableTimes.forEach((time, index) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = `py-1 px-3 text-xs rounded-md border font-medium transition ${
+          index === 0 ? 'bg-[#6b1124] text-white border-[#6b1124]' : 'bg-white text-gray-700 border-[#e2d9cc] hover:border-[#6b1124]'
+        }`;
+        chip.textContent = time;
+        chip.onclick = () => {
+          state.selectedTime = time;
+          Array.from(timesContainer.children).forEach(c => {
+            c.className = 'py-1 px-3 text-xs rounded-md border font-medium transition bg-white text-gray-700 border-[#e2d9cc] hover:border-[#6b1124]';
+          });
+          chip.className = 'py-1 px-3 text-xs rounded-md border font-medium transition bg-[#6b1124] text-white border-[#6b1124]';
+        };
+        timesContainer.appendChild(chip);
+      });
+
+      resetFleeingButton();
+    }
+
+    function switchToCreatorView() {
+      document.getElementById('receiverMode').classList.add('hidden');
+      document.getElementById('successMode').classList.add('hidden');
+      document.getElementById('creatorMode').classList.remove('hidden');
+      document.getElementById('stepDashes').classList.remove('hidden');
+      goToStep(1);
+    }
+
+    function setupFleeingButton() {
+      const fleeBtn = document.getElementById('fleeBtn');
+      const card = document.getElementById('invitationCard');
+
+      const triggerDodge = (e) => {
+        if (e) e.preventDefault();
+
+        // Change text to funny phrase
+        fleeBtn.innerText = DODGE_PHRASES[dodgeIndex % DODGE_PHRASES.length];
+        document.getElementById('dodgeNote').innerText = DODGE_NOTES[dodgeIndex % DODGE_NOTES.length];
+        dodgeIndex++;
+
+        // Calculate container bounds
+        const cardRect = card.getBoundingClientRect();
+        const btnRect = fleeBtn.getBoundingClientRect();
+
+        // Ensure button moves to absolute positioning within card
+        fleeBtn.style.position = 'absolute';
+        fleeBtn.style.zIndex = '50';
+
+        // Calculate safe random coordinates inside the card container
+        const padding = 20;
+        const maxX = cardRect.width - btnRect.width - padding;
+        const maxY = cardRect.height - btnRect.height - padding;
+
+        const newX = Math.max(padding, Math.floor(Math.random() * maxX));
+        const newY = Math.max(padding, Math.floor(Math.random() * maxY));
+
+        fleeBtn.style.left = `${newX}px`;
+        fleeBtn.style.top = `${newY}px`;
+      };
+
+      // Listen to both hover and touch attempt events
+      fleeBtn.addEventListener('mouseenter', triggerDodge);
+      fleeBtn.addEventListener('touchstart', triggerDodge, { passive: false });
+      fleeBtn.addEventListener('click', triggerDodge);
+    }
+
+    function resetFleeingButton() {
+      const fleeBtn = document.getElementById('fleeBtn');
+      fleeBtn.style.position = 'relative';
+      fleeBtn.style.left = 'auto';
+      fleeBtn.style.top = 'auto';
+      fleeBtn.innerText = 'Non';
+      document.getElementById('dodgeNote').innerText = 'Tu es sûr-e...';
+      dodgeIndex = 0;
+    }
+
+    function acceptInvitation() {
+      // Trigger confetti burst
+      if (typeof confetti === 'function') {
+        const myConfetti = confetti.create(document.getElementById('confettiCanvas'), {
+          resize: true,
+          useWorker: true
+        });
+
+        myConfetti({
+          particleCount: 120,
+          spread: 80,
+          origin: { y: 0.6 },
+          colors: ['#6b1124', '#b88d4c', '#ffffff', '#e2d9cc']
+        });
+
+        setTimeout(() => {
+          myConfetti({
+            particleCount: 80,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 }
+          });
+          myConfetti({
+            particleCount: 80,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 }
+          });
+        }, 200);
+      }
+
+      // Populate Success Summary
+      document.getElementById('confirmSender').textContent = state.senderName;
+      document.getElementById('confirmTarget').textContent = state.targetName;
+      document.getElementById('confirmActivity').textContent = state.activity;
+      document.getElementById('confirmLocation').textContent = state.location;
+      document.getElementById('confirmDate').textContent = state.date;
+      document.getElementById('confirmTime').textContent = state.selectedTime;
+
+      // Show success screen
+      document.getElementById('receiverMode').classList.add('hidden');
+      document.getElementById('successMode').classList.remove('hidden');
+    }
+
+    function confirmOnWhatsApp() {
+      const text = `Coucou ${state.senderName} ! C'est bon pour le ${state.activity.toLowerCase()} à ${state.location} le ${state.date} vers ${state.selectedTime} ! 🍿✨`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    }
+
+    function shareViaWhatsApp() {
+      const url = document.getElementById('shareableUrlInput').value;
+      const text = `Coucou ${state.targetName} ! J'ai une question importante pour toi... 🍿👉 ${url}`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    }
+
+    function copyGeneratedLink() {
+      const input = document.getElementById('shareableUrlInput');
+      input.select();
+      document.execCommand('copy');
+      
+      const copyBtn = document.getElementById('copyBtn');
+      copyBtn.textContent = "Copié !";
+      copyBtn.classList.replace('bg-[#6b1124]', 'bg-green-600');
+
+      showToast("Lien d'invitation copié dans le presse-papier !");
+
+      setTimeout(() => {
+        copyBtn.textContent = "Copier";
+        copyBtn.classList.replace('bg-green-600', 'bg-[#6b1124]');
+      }, 2500);
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = message;
+      toast.classList.remove('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'pointer-events-none');
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
